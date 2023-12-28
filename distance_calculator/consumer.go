@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/gabuladze/tolling/aggregator/client"
 	"github.com/gabuladze/tolling/types"
 )
 
@@ -17,9 +19,10 @@ type KafkaConsumer struct {
 	isRunning bool
 	consumer  *kafka.Consumer
 	dcs       DistanceCalculator
+	aggClient *client.HTTPClient
 }
 
-func NewKafkaConsumer(topic string, dcs DistanceCalculator) (DataConsumer, error) {
+func NewKafkaConsumer(topic string, dcs DistanceCalculator, aggClient *client.HTTPClient) (DataConsumer, error) {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": "localhost",
 		"group.id":          "myGroup",
@@ -33,8 +36,9 @@ func NewKafkaConsumer(topic string, dcs DistanceCalculator) (DataConsumer, error
 	c.SubscribeTopics([]string{topic}, nil)
 
 	return &KafkaConsumer{
-		consumer: c,
-		dcs:      dcs,
+		consumer:  c,
+		dcs:       dcs,
+		aggClient: aggClient,
 	}, nil
 }
 
@@ -63,6 +67,14 @@ func (kc *KafkaConsumer) readMessageLoop() {
 			log.Println(err)
 		}
 
-		_ = distance
+		req := types.Distance{
+			OBUID: d.OBUID,
+			Value: distance,
+			Unix:  time.Now().Unix(),
+		}
+		if err := kc.aggClient.AggregateDistance(req); err != nil {
+			log.Fatalf("aggregate error: %v", err)
+			continue
+		}
 	}
 }

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/gabuladze/tolling/types"
 )
 
@@ -21,6 +19,5 @@ func NewDistanceAggregator(store Storer) Aggregator {
 }
 
 func (da DistanceAggregator) AggregateDistance(dist types.Distance) error {
-	log.Panicln("aggregateDistance", dist)
 	return da.store.Insert(dist)
 }

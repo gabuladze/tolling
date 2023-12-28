@@ -2,13 +2,19 @@ package main
 
 import (
 	"log"
+
+	"github.com/gabuladze/tolling/aggregator/client"
 )
 
-const kafkaTopic = "obudata"
+const (
+	kafkaTopic     = "obudata"
+	clientEndpoint = "http://localhost:3001"
+)
 
 func main() {
 	distanceCalculatorService := NewDistanceCalculatorService()
-	kafkaConsumer, err := NewKafkaConsumer(kafkaTopic, distanceCalculatorService)
+	aggClient := client.NewHTTPClient(clientEndpoint)
+	kafkaConsumer, err := NewKafkaConsumer(kafkaTopic, distanceCalculatorService, aggClient)
 	if err != nil {
 		log.Fatal(err)
 	}
