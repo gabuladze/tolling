@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gabuladze/tolling/types"
 )
@@ -21,8 +22,34 @@ func main() {
 
 func makeHTTPTransport(listenAddr string, da Aggregator) error {
 	log.Println("HTTP server running on ", listenAddr)
-	http.HandleFunc("/", handleAggregate(da))
+	http.HandleFunc("/aggregate", handleAggregate(da))
+	http.HandleFunc("/invoice", handleGetInvoice(da))
 	return http.ListenAndServe(listenAddr, nil)
+}
+
+func handleGetInvoice(da Aggregator) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		obuIDParam := r.URL.Query().Get("obu")
+		if len(obuIDParam) == 0 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid obu id"})
+			return
+		}
+
+		obuID, err := strconv.Atoi(obuIDParam)
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid obu id"})
+			return
+		}
+
+		inv, err := da.GenerateInvoice(obuID)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "invoice generation failed"})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, inv)
+		return
+	}
 }
 
 func handleAggregate(da Aggregator) http.HandlerFunc {
