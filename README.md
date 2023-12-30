@@ -1,1 +1,1 @@
-Simple golang app. microservies, kafka, grpc+protobuf
+Microservices in Go with Kafka, http, grpc+protobuf
