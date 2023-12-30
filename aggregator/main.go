@@ -18,13 +18,15 @@ func main() {
 	distAgg := NewDistanceAggregator(store)
 	distAgg = NewLogMiddleware(distAgg)
 
-	go makeGRPCTransport(grpcListenAddr, distAgg)
-	makeHTTPTransport(httpListenAddr, distAgg)
+	go func() {
+		log.Fatal(makeGRPCTransport(grpcListenAddr, distAgg))
+	}()
+	log.Fatal(makeHTTPTransport(httpListenAddr, distAgg))
 }
 
 func makeGRPCTransport(listenAddr string, da Aggregator) error {
 	log.Println("GRPC service running on ", listenAddr)
-	ln, err := net.Listen("TCP", listenAddr)
+	ln, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		return err
 	}
