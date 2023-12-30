@@ -1,0 +1,1 @@
+Simple golang app. microservies, kafka, grpc+protobuf
