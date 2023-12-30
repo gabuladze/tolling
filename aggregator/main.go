@@ -3,21 +3,37 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 
 	"github.com/gabuladze/tolling/types"
+	"google.golang.org/grpc"
 )
 
 func main() {
-	listenAddr := ":3001"
+	httpListenAddr := ":3001"
+	grpcListenAddr := ":3002"
 	store := NewMemoryStore()
 	distAgg := NewDistanceAggregator(store)
 	distAgg = NewLogMiddleware(distAgg)
-	err := makeHTTPTransport(listenAddr, distAgg)
+
+	go makeGRPCTransport(grpcListenAddr, distAgg)
+	makeHTTPTransport(httpListenAddr, distAgg)
+}
+
+func makeGRPCTransport(listenAddr string, da Aggregator) error {
+	log.Println("GRPC service running on ", listenAddr)
+	ln, err := net.Listen("TCP", listenAddr)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	defer ln.Close()
+
+	server := grpc.NewServer([]grpc.ServerOption{}...)
+	types.RegisterAggregatorServer(server, NewAggregatorGRPCService(da))
+
+	return server.Serve(ln)
 }
 
 func makeHTTPTransport(listenAddr string, da Aggregator) error {
