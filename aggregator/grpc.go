@@ -2,9 +2,26 @@ package main
 
 import (
 	"context"
+	"log"
+	"net"
 
 	"github.com/gabuladze/tolling/types"
+	"google.golang.org/grpc"
 )
+
+func MakeGRPCTransport(listenAddr string, da Aggregator) error {
+	log.Println("GRPC service running on ", listenAddr)
+	ln, err := net.Listen("tcp", listenAddr)
+	if err != nil {
+		return err
+	}
+	defer ln.Close()
+
+	server := grpc.NewServer([]grpc.ServerOption{}...)
+	types.RegisterAggregatorServer(server, NewAggregatorGRPCService(da))
+
+	return server.Serve(ln)
+}
 
 type GRPCAggregatorService struct {
 	types.UnimplementedAggregatorServer
